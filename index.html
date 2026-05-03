@@ -1,0 +1,207 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SPK + AHP API Tester</title>
+    <style>
+        body { font-family: monospace; padding: 20px; max-width: 900px; margin: auto; }
+        .section { border: 1px solid #ccc; padding: 15px; margin-bottom: 15px; background: #f9f9f9; }
+        input, select, button, textarea { margin: 5px 0; padding: 8px; font-family: monospace; }
+        textarea { width: 100%; height: 80px; }
+        #log { background: #222; color: #0f0; padding: 15px; overflow-x: auto; max-height: 400px; }
+        .status { font-weight: bold; color: blue; }
+    </style>
+</head>
+<body>
+
+    <h2>🛠️ SPK Property Tester</h2>
+    <p>Status: 
+        Token JWT = <span id="token-status" class="status">Belum ada</span> | 
+        Active Case ID = <span id="case-status" class="status">Belum ada</span>
+    </p>
+
+    <!-- 1. AUTH -->
+    <div class="section">
+        <h3>1. Auth (Login/Register)</h3>
+        <input type="text" id="username" placeholder="Username" value="admin">
+        <input type="password" id="password" placeholder="Password" value="12345">
+        <button onclick="register()">Register</button>
+        <button onclick="login()">Login</button>
+    </div>
+
+    <!-- 2. CASE -->
+    <div class="section">
+        <h3>2. Decision Case</h3>
+        <input type="text" id="case_name" placeholder="Nama Case" value="KPR Madiun">
+        <input type="text" id="case_desc" placeholder="Deskripsi" value="Testing algoritma hibrida">
+        <button onclick="createCase()">Buat Case Baru</button>
+    </div>
+
+    <!-- 3. KRITERIA -->
+    <div class="section">
+        <h3>3. Input Kriteria</h3>
+        <input type="text" id="crit_name" placeholder="Nama (Cth: Harga)">
+        <select id="crit_type">
+            <option value="cost">Cost</option>
+            <option value="benefit">Benefit</option>
+        </select>
+        <input type="number" id="crit_weight" placeholder="Bobot Awal" value="0" style="width: 100px;">
+        <button onclick="addCriteria()">Tambah Kriteria</button>
+        <button onclick="getCriteria()">Lihat Semua Kriteria</button>
+    </div>
+
+    <!-- 4. AHP -->
+    <div class="section">
+        <h3>4. AHP (Pembobotan)</h3>
+        <p><small>Format JSON Array. Pastikan id kriteria sesuai dengan data yang kamu input di atas!</small></p>
+        <textarea id="ahp_comparisons">[
+    {"criteria_1": 1, "criteria_2": 2, "comparison_value": 3},
+    {"criteria_1": 1, "criteria_2": 3, "comparison_value": 5},
+    {"criteria_1": 2, "criteria_2": 3, "comparison_value": 2}
+]</textarea>
+        <button onclick="inputAHP()">Simpan Matriks AHP</button>
+        <button onclick="calculateAHP()">Hitung & Update Bobot AHP</button>
+    </div>
+
+    <!-- 5. ALTERNATIF -->
+    <div class="section">
+        <h3>5. Input Alternatif & Nilai</h3>
+        <input type="text" id="alt_name" placeholder="Nama Rumah" value="Perumahan A">
+        <input type="text" id="alt_desc" placeholder="Deskripsi" value="Tipe 36">
+        <p><small>Values Format JSON Array (criteria_id & value)</small></p>
+        <textarea id="alt_values">[
+    {"criteria_id": 1, "value": 450000000},
+    {"criteria_id": 2, "value": 5},
+    {"criteria_id": 3, "value": 8}
+]</textarea>
+        <button onclick="addAlternative()">Tambah Alternatif</button>
+        <button onclick="getAlternatives()">Lihat Semua Alternatif</button>
+    </div>
+
+    <!-- 6. SPK CALCULATOR -->
+    <div class="section">
+        <h3>6. Kalkulasi SPK</h3>
+        <button onclick="calculateSPK('saw')">Hitung SAW</button>
+        <button onclick="calculateSPK('smart')">Hitung SMART</button>
+        <button onclick="calculateSPK('wp')">Hitung WP</button>
+        <button onclick="calculateSPK('topsis')">Hitung TOPSIS</button>
+    </div>
+
+    <!-- LOG OUTPUT -->
+    <h3>Response Server:</h3>
+    <pre id="log">Belum ada request...</pre>
+
+    <script>
+        const BASE_URL = 'http://localhost:5000/api/v1';
+        let jwtToken = '';
+        let currentCaseId = '';
+
+        // Helper function untuk fetch API
+        async function apiCall(endpoint, method = 'GET', body = null) {
+            document.getElementById('log').innerText = 'Loading...';
+            const headers = { 'Content-Type': 'application/json' };
+            if (jwtToken) headers['Authorization'] = `Bearer ${jwtToken}`;
+
+            const config = { method, headers };
+            if (body) config.body = JSON.stringify(body);
+
+            try {
+                const response = await fetch(BASE_URL + endpoint, config);
+                const data = await response.json();
+                document.getElementById('log').innerText = JSON.stringify(data, null, 4);
+                return data;
+            } catch (error) {
+                document.getElementById('log').innerText = "ERROR: " + error.message;
+                console.error(error);
+            }
+        }
+
+        // 1. Auth Functions
+        async function register() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            await apiCall('/auth/register', 'POST', { username, password, role: 'user' });
+        }
+
+        async function login() {
+            const username = document.getElementById('username').value;
+            const password = document.getElementById('password').value;
+            const res = await apiCall('/auth/login', 'POST', { username, password });
+            if (res && res.token) {
+                jwtToken = res.token;
+                document.getElementById('token-status').innerText = "Tersimpan ✅";
+            }
+        }
+
+        // 2. Case Functions
+        async function createCase() {
+            const case_name = document.getElementById('case_name').value;
+            const description = document.getElementById('case_desc').value;
+            const res = await apiCall('/cases', 'POST', { case_name, description });
+            if (res && res.data && res.data.case_id) {
+                currentCaseId = res.data.case_id;
+                document.getElementById('case-status').innerText = currentCaseId;
+            }
+        }
+
+        // 3. Criteria Functions
+        async function addCriteria() {
+            if (!currentCaseId) return alert('Buat/Set Case ID dulu!');
+            const criteria_name = document.getElementById('crit_name').value;
+            const criteria_type = document.getElementById('crit_type').value;
+            const weight = parseFloat(document.getElementById('crit_weight').value);
+            
+            await apiCall('/criteria', 'POST', { 
+                case_id: currentCaseId, criteria_name, criteria_type, weight 
+            });
+            document.getElementById('crit_name').value = ''; // auto clear
+        }
+
+        async function getCriteria() {
+            if (!currentCaseId) return alert('Case ID kosong!');
+            await apiCall(`/criteria/${currentCaseId}`);
+        }
+
+        // 4. AHP Functions
+        async function inputAHP() {
+            if (!currentCaseId) return alert('Case ID kosong!');
+            try {
+                const comparisons = JSON.parse(document.getElementById('ahp_comparisons').value);
+                await apiCall('/spk/ahp/comparisons', 'POST', { case_id: currentCaseId, comparisons });
+            } catch(e) { alert("Format JSON salah!"); }
+        }
+
+        async function calculateAHP() {
+            if (!currentCaseId) return alert('Case ID kosong!');
+            await apiCall(`/spk/ahp/calculate/${currentCaseId}`, 'POST');
+        }
+
+        // 5. Alternative Functions
+        async function addAlternative() {
+            if (!currentCaseId) return alert('Case ID kosong!');
+            try {
+                const alternative_name = document.getElementById('alt_name').value;
+                const description = document.getElementById('alt_desc').value;
+                const values = JSON.parse(document.getElementById('alt_values').value);
+                
+                await apiCall('/alternatives', 'POST', { 
+                    case_id: currentCaseId, alternative_name, description, values 
+                });
+                document.getElementById('alt_name').value = ''; // auto clear
+            } catch(e) { alert("Format JSON salah!"); }
+        }
+
+        async function getAlternatives() {
+            if (!currentCaseId) return alert('Case ID kosong!');
+            await apiCall(`/alternatives/${currentCaseId}`);
+        }
+
+        // 6. SPK Kalkulasi
+        async function calculateSPK(method) {
+            if (!currentCaseId) return alert('Case ID kosong!');
+            await apiCall(`/spk/${method}/${currentCaseId}`, 'POST');
+        }
+    </script>
+</body>
+</html>

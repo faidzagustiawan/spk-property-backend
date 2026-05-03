@@ -1,0 +1,18 @@
+version: '3.9'
+
+services:
+  spk-db:
+    image: postgres:15-alpine # Menggunakan image resmi postgres
+    container_name: spk_database
+    ports:
+      - "5433:5432"
+    environment:
+      POSTGRES_USER: spkuser
+      POSTGRES_PASSWORD: spkpassword
+      POSTGRES_DB: spk_db
+    volumes:
+      - spk_data:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/init.sql # Mengeksekusi SQL otomatis
+
+volumes:
+  spk_data:

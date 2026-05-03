@@ -1,0 +1,222 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "SPK Property & ML API",
+    "version": "1.0.0",
+    "description": "Dokumentasi REST API untuk Sistem Pendukung Keputusan Pemilihan Properti dengan metode Hibrida (AHP + SAW/SMART/WP/TOPSIS) dan Integrasi Machine Learning."
+  },
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Development Server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
+    "/auth/register": {
+      "post": {
+        "tags": ["1. Authentication"],
+        "summary": "Register user baru",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "12345" },
+                  "role": { "type": "string", "example": "user" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Registrasi berhasil" } }
+      }
+    },
+    "/auth/login": {
+      "post": {
+        "tags": ["1. Authentication"],
+        "summary": "Login untuk mendapatkan JWT Token",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "username": { "type": "string", "example": "admin" },
+                  "password": { "type": "string", "example": "12345" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "200": { "description": "Login berhasil, mengembalikan token" } }
+      }
+    },
+    "/cases": {
+      "post": {
+        "tags": ["2. Decision Case"],
+        "summary": "Membuat Decision Case baru",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "case_name": { "type": "string", "example": "KPR Madiun" },
+                  "description": { "type": "string", "example": "Pemilihan rumah tipe 36" }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Case berhasil dibuat" } }
+      },
+      "get": {
+        "tags": ["2. Decision Case"],
+        "summary": "Mengambil semua Decision Case milik user",
+        "responses": { "200": { "description": "Berhasil mengambil data" } }
+      }
+    },
+    "/criteria": {
+      "post": {
+        "tags": ["3. Criteria"],
+        "summary": "Menambahkan kriteria baru ke dalam case",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "case_id": { "type": "integer", "example": 1 },
+                  "criteria_name": { "type": "string", "example": "Harga" },
+                  "criteria_type": { "type": "string", "example": "cost" },
+                  "weight": { "type": "number", "example": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Kriteria berhasil ditambahkan" } }
+      }
+    },
+    "/spk/ahp/comparisons": {
+      "post": {
+        "tags": ["4. AHP Weighting"],
+        "summary": "Input nilai perbandingan berpasangan antarkriteria",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "case_id": { "type": "integer", "example": 1 },
+                  "comparisons": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "criteria_1": { "type": "integer", "example": 1 },
+                        "criteria_2": { "type": "integer", "example": 2 },
+                        "comparison_value": { "type": "number", "example": 3 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Perbandingan disimpan" } }
+      }
+    },
+    "/spk/ahp/calculate/{case_id}": {
+      "post": {
+        "tags": ["4. AHP Weighting"],
+        "summary": "Hitung Eigen Vector, CR, dan update bobot kriteria",
+        "parameters": [
+          {
+            "name": "case_id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer", "example": 1 }
+          }
+        ],
+        "responses": { "200": { "description": "AHP berhasil dikalkulasi" } }
+      }
+    },
+    "/alternatives": {
+      "post": {
+        "tags": ["5. Alternatives"],
+        "summary": "Menambahkan rumah beserta nilainya",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "case_id": { "type": "integer", "example": 1 },
+                  "alternative_name": { "type": "string", "example": "Perumahan Indah" },
+                  "description": { "type": "string", "example": "Dekat stasiun" },
+                  "values": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "criteria_id": { "type": "integer", "example": 1 },
+                        "value": { "type": "number", "example": 450000000 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": { "201": { "description": "Alternatif berhasil disimpan" } }
+      }
+    },
+    "/spk/saw/{case_id}": {
+      "post": {
+        "tags": ["6. SPK Ranking Algorithms"],
+        "summary": "Hitung perankingan dengan metode SAW",
+        "parameters": [
+          { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer", "example": 1 } }
+        ],
+        "responses": { "200": { "description": "Hasil SAW" } }
+      }
+    },
+    "/spk/topsis/{case_id}": {
+      "post": {
+        "tags": ["6. SPK Ranking Algorithms"],
+        "summary": "Hitung perankingan dengan metode TOPSIS",
+        "parameters": [
+          { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer", "example": 1 } }
+        ],
+        "responses": { "200": { "description": "Hasil TOPSIS" } }
+      }
+    }
+  }
+}
