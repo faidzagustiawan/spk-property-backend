@@ -47,6 +47,52 @@ class CaseRepository {
         const { rows } = await db.query(query, [caseId]);
         return rows[0];
     }
+
+    static async update(caseId, userId, caseName, description) {
+        const query = `
+            UPDATE decision_case 
+            SET case_name = $1, description = $2 
+            WHERE case_id = $3 AND user_id = $4
+            RETURNING *;
+        `;
+        const { rows } = await db.query(query, [caseName, description, caseId, userId]);
+        return rows[0];
+    }
+
+    static async delete(caseId, userId) {
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+            
+            // Verifikasi kepemilikan case
+            const checkQuery = 'SELECT case_id FROM decision_case WHERE case_id = $1 AND user_id = $2';
+            const { rows } = await client.query(checkQuery, [caseId, userId]);
+            if (rows.length === 0) throw new Error('Case tidak ditemukan atau bukan milik Anda');
+
+            // Hapus secara hierarkis (Child to Parent)
+            await client.query('DELETE FROM results WHERE case_id = $1', [caseId]);
+            await client.query('DELETE FROM criteria_comparisons WHERE case_id = $1', [caseId]);
+            
+            // Hapus alternative_values dengan join alternatives
+            await client.query(`
+                DELETE FROM alternative_values 
+                WHERE alternative_id IN (SELECT alternative_id FROM alternatives WHERE case_id = $1)
+            `, [caseId]);
+            
+            await client.query('DELETE FROM alternatives WHERE case_id = $1', [caseId]);
+            await client.query('DELETE FROM criteria WHERE case_id = $1', [caseId]);
+            await client.query('DELETE FROM decision_case WHERE case_id = $1', [caseId]);
+
+            await client.query('COMMIT');
+            return true;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+    
 }
 
 module.exports = CaseRepository;

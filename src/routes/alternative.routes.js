@@ -7,5 +7,7 @@ router.use(authMiddleware);
 
 router.post('/', AlternativeController.createAlternative);
 router.get('/:case_id', AlternativeController.getAlternativesByCase);
+router.delete('/:id', AlternativeController.deleteAlternative);
+
 
 module.exports = router;

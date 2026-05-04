@@ -7,5 +7,7 @@ router.use(authMiddleware); // Proteksi rute dengan JWT
 
 router.post('/', CriteriaController.createCriteria);
 router.get('/:case_id', CriteriaController.getCriteriaByCase);
+router.put('/:id', CriteriaController.updateCriteria);
+router.delete('/:id', CriteriaController.deleteCriteria);
 
 module.exports = router;

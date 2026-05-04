@@ -38,6 +38,20 @@ class ResultRepository {
             client.release();
         }
     }
+
+    static async getResultsByCaseId(caseId, method = 'SAW') {
+        const query = `
+            SELECT r.result_id, r.method, r.score, r.ranking, r.created_at, 
+                   a.alternative_id, a.alternative_name
+            FROM results r
+            JOIN alternatives a ON r.alternative_id = a.alternative_id
+            WHERE r.case_id = $1 AND r.method = $2
+            ORDER BY r.ranking ASC;
+        `;
+        const { rows } = await db.query(query, [caseId, method]);
+        return rows;
+    }
+    
 }
 
 module.exports = ResultRepository;

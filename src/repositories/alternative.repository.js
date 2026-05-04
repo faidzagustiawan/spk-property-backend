@@ -66,6 +66,24 @@ class AlternativeRepository {
         const { rows } = await db.query(query, [caseId]);
         return rows;
     }
+
+    static async delete(alternativeId) {
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+            await client.query('DELETE FROM results WHERE alternative_id = $1', [alternativeId]);
+            await client.query('DELETE FROM alternative_values WHERE alternative_id = $1', [alternativeId]);
+            await client.query('DELETE FROM alternatives WHERE alternative_id = $1', [alternativeId]);
+            await client.query('COMMIT');
+            return true;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+    
 }
 
 module.exports = AlternativeRepository;

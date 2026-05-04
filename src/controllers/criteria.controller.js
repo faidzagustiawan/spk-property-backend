@@ -51,6 +51,22 @@ class CriteriaController {
             res.status(500).json({ error: 'Terjadi kesalahan saat mengambil kriteria' });
         }
     }
+    static async updateCriteria(req, res) {
+        try {
+            const { criteria_name, criteria_type, weight } = req.body;
+            const typeLower = criteria_type.toLowerCase();
+            const updated = await CriteriaRepository.update(req.params.id, criteria_name, typeLower, weight);
+            res.status(200).json({ message: 'Kriteria diperbarui', data: updated });
+        } catch (error) { res.status(500).json({ error: error.message }); }
+    }
+
+    static async deleteCriteria(req, res) {
+        try {
+            await CriteriaRepository.delete(req.params.id);
+            res.status(200).json({ message: 'Kriteria berhasil dihapus' });
+        } catch (error) { res.status(500).json({ error: error.message }); }
+    }
+    
 }
 
 module.exports = CriteriaController;

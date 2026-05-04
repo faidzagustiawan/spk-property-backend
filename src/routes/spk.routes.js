@@ -20,4 +20,6 @@ router.post('/smart/:case_id', SPKController.calculateSMART);
 router.post('/wp/:case_id', SPKController.calculateWP);
 router.post('/topsis/:case_id', SPKController.calculateTOPSIS);
 
+router.get('/results/:case_id', SPKController.getCalculationResults);
+
 module.exports = router;

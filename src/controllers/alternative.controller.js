@@ -43,6 +43,15 @@ class AlternativeController {
             res.status(500).json({ error: 'Terjadi kesalahan saat mengambil alternatif' });
         }
     }
+
+    static async deleteAlternative(req, res) {
+        try {
+            await AlternativeRepository.delete(req.params.id);
+            res.status(200).json({ message: 'Alternatif berhasil dihapus' });
+        } catch (error) { res.status(500).json({ error: error.message }); }
+    }
+
+    
 }
 
 module.exports = AlternativeController;

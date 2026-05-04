@@ -2,30 +2,35 @@
   "openapi": "3.0.0",
   "info": {
     "title": "SPK Property & ML API",
-    "version": "1.0.0",
-    "description": "Dokumentasi REST API untuk Sistem Pendukung Keputusan Pemilihan Properti dengan metode Hibrida (AHP + SAW/SMART/WP/TOPSIS) dan Integrasi Machine Learning."
+    "version": "1.1.0",
+    "description": "Dokumentasi REST API (Full CRUD) untuk Sistem Pendukung Keputusan."
   },
-  "servers": [
-    {
-      "url": "http://localhost:5000/api/v1",
-      "description": "Development Server"
-    }
-  ],
+  "servers": [ { "url": "http://localhost:5000/api/v1" } ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "type": "http",
-        "scheme": "bearer",
-        "bearerFormat": "JWT"
+      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+    },
+    "schemas": {
+      "CasePayload": {
+        "type": "object",
+        "properties": {
+          "case_name": { "type": "string", "example": "KPR Madiun" },
+          "description": { "type": "string", "example": "Pemilihan rumah tipe 36" }
+        }
+      },
+      "CriteriaPayload": {
+        "type": "object",
+        "properties": {
+          "case_id": { "type": "integer", "example": 1 },
+          "criteria_name": { "type": "string", "example": "Harga" },
+          "criteria_type": { "type": "string", "example": "cost" },
+          "weight": { "type": "number", "example": 0.5 }
+        }
       }
     }
   },
-  "security": [
-    {
-      "bearerAuth": []
-    }
-  ],
-  "paths": {
+  "security": [ { "bearerAuth": [] } ],
+   "paths": {
     "/auth/register": {
       "post": {
         "tags": ["1. Authentication"],
@@ -75,147 +80,84 @@
       "post": {
         "tags": ["2. Decision Case"],
         "summary": "Membuat Decision Case baru",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "case_name": { "type": "string", "example": "KPR Madiun" },
-                  "description": { "type": "string", "example": "Pemilihan rumah tipe 36" }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Case berhasil dibuat" } }
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CasePayload" } } } },
+        "responses": { "201": { "description": "Success" } }
       },
       "get": {
         "tags": ["2. Decision Case"],
-        "summary": "Mengambil semua Decision Case milik user",
-        "responses": { "200": { "description": "Berhasil mengambil data" } }
+        "summary": "Mendapatkan semua Case user",
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/cases/{id}": {
+      "get": {
+        "tags": ["2. Decision Case"],
+        "summary": "Mendapatkan detail Case berserta kriteria",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      },
+      "put": {
+        "tags": ["2. Decision Case"],
+        "summary": "Mengubah nama/deskripsi Case",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CasePayload" } } } },
+        "responses": { "200": { "description": "Success" } }
+      },
+      "delete": {
+        "tags": ["2. Decision Case"],
+        "summary": "Menghapus Case dan seluruh data di dalamnya secara permanen",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
       }
     },
     "/criteria": {
       "post": {
         "tags": ["3. Criteria"],
-        "summary": "Menambahkan kriteria baru ke dalam case",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "case_id": { "type": "integer", "example": 1 },
-                  "criteria_name": { "type": "string", "example": "Harga" },
-                  "criteria_type": { "type": "string", "example": "cost" },
-                  "weight": { "type": "number", "example": 0 }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Kriteria berhasil ditambahkan" } }
+        "summary": "Menambahkan kriteria",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CriteriaPayload" } } } },
+        "responses": { "201": { "description": "Success" } }
       }
     },
-    "/spk/ahp/comparisons": {
-      "post": {
-        "tags": ["4. AHP Weighting"],
-        "summary": "Input nilai perbandingan berpasangan antarkriteria",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "case_id": { "type": "integer", "example": 1 },
-                  "comparisons": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "criteria_1": { "type": "integer", "example": 1 },
-                        "criteria_2": { "type": "integer", "example": 2 },
-                        "comparison_value": { "type": "number", "example": 3 }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Perbandingan disimpan" } }
+    "/criteria/{case_id}": {
+      "get": {
+        "tags": ["3. Criteria"],
+        "summary": "Mendapatkan list kriteria berdasarkan Case ID",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
       }
     },
-    "/spk/ahp/calculate/{case_id}": {
-      "post": {
-        "tags": ["4. AHP Weighting"],
-        "summary": "Hitung Eigen Vector, CR, dan update bobot kriteria",
-        "parameters": [
-          {
-            "name": "case_id",
-            "in": "path",
-            "required": true,
-            "schema": { "type": "integer", "example": 1 }
-          }
-        ],
-        "responses": { "200": { "description": "AHP berhasil dikalkulasi" } }
+    "/criteria/{id}": {
+      "put": {
+        "tags": ["3. Criteria"],
+        "summary": "Mengubah kriteria (nama, tipe, bobot manual)",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/CriteriaPayload" } } } },
+        "responses": { "200": { "description": "Success" } }
+      },
+      "delete": {
+        "tags": ["3. Criteria"],
+        "summary": "Menghapus kriteria",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
       }
     },
-    "/alternatives": {
-      "post": {
+    "/alternatives/{id}": {
+      "delete": {
         "tags": ["5. Alternatives"],
-        "summary": "Menambahkan rumah beserta nilainya",
-        "requestBody": {
-          "required": true,
-          "content": {
-            "application/json": {
-              "schema": {
-                "type": "object",
-                "properties": {
-                  "case_id": { "type": "integer", "example": 1 },
-                  "alternative_name": { "type": "string", "example": "Perumahan Indah" },
-                  "description": { "type": "string", "example": "Dekat stasiun" },
-                  "values": {
-                    "type": "array",
-                    "items": {
-                      "type": "object",
-                      "properties": {
-                        "criteria_id": { "type": "integer", "example": 1 },
-                        "value": { "type": "number", "example": 450000000 }
-                      }
-                    }
-                  }
-                }
-              }
-            }
-          }
-        },
-        "responses": { "201": { "description": "Alternatif berhasil disimpan" } }
+        "summary": "Menghapus alternatif",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
       }
     },
-    "/spk/saw/{case_id}": {
-      "post": {
+    "/spk/results/{case_id}": {
+      "get": {
         "tags": ["6. SPK Ranking Algorithms"],
-        "summary": "Hitung perankingan dengan metode SAW",
+        "summary": "Melihat hasil kalkulasi tersimpan tanpa menghitung ulang",
         "parameters": [
-          { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer", "example": 1 } }
+          { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "method", "in": "query", "required": false, "schema": { "type": "string", "default": "SAW" } }
         ],
-        "responses": { "200": { "description": "Hasil SAW" } }
-      }
-    },
-    "/spk/topsis/{case_id}": {
-      "post": {
-        "tags": ["6. SPK Ranking Algorithms"],
-        "summary": "Hitung perankingan dengan metode TOPSIS",
-        "parameters": [
-          { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer", "example": 1 } }
-        ],
-        "responses": { "200": { "description": "Hasil TOPSIS" } }
+        "responses": { "200": { "description": "Success" } }
       }
     }
   }

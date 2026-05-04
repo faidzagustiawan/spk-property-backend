@@ -9,5 +9,7 @@ router.use(authMiddleware);
 router.post('/', CaseController.createCase);
 router.get('/', CaseController.getAllCases);
 router.get('/:id', CaseController.getCaseById);
+router.put('/:id', CaseController.updateCase);
+router.delete('/:id', CaseController.deleteCase);
 
 module.exports = router;

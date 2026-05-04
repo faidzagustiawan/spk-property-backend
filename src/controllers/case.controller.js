@@ -56,6 +56,22 @@ class CaseController {
             res.status(500).json({ error: 'Terjadi kesalahan saat mengambil detail case' });
         }
     }
+    static async updateCase(req, res) {
+        try {
+            const { case_name, description } = req.body;
+            const updatedCase = await CaseRepository.update(req.params.id, req.user.user_id, case_name, description);
+            if (!updatedCase) return res.status(404).json({ error: 'Case tidak ditemukan/tidak ada akses' });
+            res.status(200).json({ message: 'Case diperbarui', data: updatedCase });
+        } catch (error) { res.status(500).json({ error: error.message }); }
+    }
+
+    static async deleteCase(req, res) {
+        try {
+            await CaseRepository.delete(req.params.id, req.user.user_id);
+            res.status(200).json({ message: 'Case beserta seluruh datanya berhasil dihapus permanen' });
+        } catch (error) { res.status(400).json({ error: error.message }); }
+    }
+    
 }
 
 module.exports = CaseController;
