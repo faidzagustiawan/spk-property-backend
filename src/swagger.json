@@ -5,7 +5,7 @@
     "version": "1.1.0",
     "description": "Dokumentasi REST API (Full CRUD) untuk Sistem Pendukung Keputusan."
   },
-  "servers": [ { "url": "http://localhost:5000/api/v1" } ],
+  "servers": [ { "url": "https://spk-property-backend-production.up.railway.app/api/v1" } ],
   "components": {
     "securitySchemes": {
       "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
