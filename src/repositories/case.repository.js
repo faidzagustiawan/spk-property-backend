@@ -13,12 +13,20 @@ class CaseRepository {
         return rows[0];
     }
 
-    // Mengambil semua case berdasarkan user
+    // Mengambil semua case berdasarkan user (DIPERBARUI UNTUK DASHBOARD)
     static async findAllByUserId(userId) {
         const query = `
-            SELECT * FROM decision_case 
-            WHERE user_id = $1 
-            ORDER BY created_at DESC;
+            SELECT 
+                dc.*,
+                -- Hitung jumlah kriteria dari tabel 'criteria'
+                (SELECT COUNT(*) FROM criteria WHERE case_id = dc.case_id) AS criteria_count,
+                -- Hitung jumlah alternatif dari tabel 'alternatives'
+                (SELECT COUNT(*) FROM alternatives WHERE case_id = dc.case_id) AS alternatives_count,
+                -- Pastikan current_step tidak null, kembalikan 1 jika kosong
+                COALESCE(dc.current_step, 1) AS current_step
+            FROM decision_case dc 
+            WHERE dc.user_id = $1 
+            ORDER BY dc.created_at DESC;
         `;
         const { rows } = await db.query(query, [userId]);
         return rows;
@@ -59,6 +67,18 @@ class CaseRepository {
         return rows[0];
     }
 
+    // Fungsi Baru: Mengupdate Progress Step
+    static async updateStep(caseId, userId, stepNumber) {
+        const query = `
+            UPDATE decision_case 
+            SET current_step = $1 
+            WHERE case_id = $2 AND user_id = $3
+            RETURNING *;
+        `;
+        const { rows } = await db.query(query, [stepNumber, caseId, userId]);
+        return rows[0];
+    }
+
     static async delete(caseId, userId) {
         const client = await db.getClient();
         try {
@@ -92,7 +112,6 @@ class CaseRepository {
             client.release();
         }
     }
-    
 }
 
 module.exports = CaseRepository;

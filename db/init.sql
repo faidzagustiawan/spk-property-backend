@@ -12,6 +12,7 @@ CREATE TABLE decision_case (
     case_name VARCHAR(100),
     description TEXT,
     created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    current_step INT DEFAULT 1, -- Kolom baru untuk tracking progress UI
     FOREIGN KEY (user_id) REFERENCES users(user_id)
 );
 
