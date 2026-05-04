@@ -1,45 +1,28 @@
 const db = require('../config/db');
 
 class AlternativeRepository {
-    static async createWithValues(caseId, alternativeName, description, values) {
-        const client = await db.getClient();
-        
-        try {
-            await client.query('BEGIN'); // Mulai Transaksi
+    
 
-            // 1. Insert Alternatif
-            const insertAltQuery = `
-                INSERT INTO alternatives (case_id, alternative_name, description) 
-                VALUES ($1, $2, $3) RETURNING alternative_id, alternative_name;
-            `;
-            const altResult = await client.query(insertAltQuery, [caseId, alternativeName, description]);
-            const newAlternative = altResult.rows[0];
-            const alternativeId = newAlternative.alternative_id;
+    static async create(caseId, alternativeName, description) {
+        const query = `
+            INSERT INTO alternatives (case_id, alternative_name, description) 
+            VALUES ($1, $2, $3) 
+            RETURNING *;
+        `;
+        const { rows } = await db.query(query, [caseId, alternativeName, description]);
+        return rows[0];
+    }
 
-            // 2. Insert Nilai-nilai Alternatif ke tabel alternative_values
-            const insertedValues = [];
-            const insertValueQuery = `
-                INSERT INTO alternative_values (alternative_id, criteria_id, value) 
-                VALUES ($1, $2, $3) RETURNING *;
-            `;
-
-            for (const item of values) {
-                const valResult = await client.query(insertValueQuery, [alternativeId, item.criteria_id, item.value]);
-                insertedValues.push(valResult.rows[0]);
-            }
-
-            await client.query('COMMIT'); // Simpan permanen
-
-            return {
-                ...newAlternative,
-                values: insertedValues
-            };
-        } catch (error) {
-            await client.query('ROLLBACK'); // Batalkan jika terjadi error
-            throw error;
-        } finally {
-            client.release(); // Kembalikan koneksi ke pool
-        }
+    // 2. Fungsi Update (Bonus agar CRUD lengkap)
+    static async update(alternativeId, alternativeName, description) {
+        const query = `
+            UPDATE alternatives 
+            SET alternative_name = $1, description = $2 
+            WHERE alternative_id = $3 
+            RETURNING *;
+        `;
+        const { rows } = await db.query(query, [alternativeName, description, alternativeId]);
+        return rows[0];
     }
 
     static async findByCaseId(caseId) {

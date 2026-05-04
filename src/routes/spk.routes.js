@@ -19,6 +19,9 @@ router.post('/saw/:case_id', SPKController.calculateSAW);
 router.post('/smart/:case_id', SPKController.calculateSMART);
 router.post('/wp/:case_id', SPKController.calculateWP);
 router.post('/topsis/:case_id', SPKController.calculateTOPSIS);
+router.post('/ahp/alternative-comparisons', AHPController.inputAltComparisons);
+router.post('/ahp/calculate-ranking/:case_id', AHPController.calculateAHPRanking);
+
 
 router.get('/results/:case_id', SPKController.getCalculationResults);
 

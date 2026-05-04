@@ -62,6 +62,48 @@ class ComparisonRepository {
             client.release();
         }
     }
+
+    static async saveAltComparisons(caseId, comparisons) {
+        const client = await db.getClient();
+        try {
+            await client.query('BEGIN');
+
+            // Reset perbandingan alternatif lama untuk case ini
+            await client.query('DELETE FROM alternative_comparisons WHERE case_id = $1', [caseId]);
+
+            const insertQuery = `
+                INSERT INTO alternative_comparisons (case_id, criteria_id, alternative_1, alternative_2, comparison_value) 
+                VALUES ($1, $2, $3, $4, $5) RETURNING *;
+            `;
+
+            const saved = [];
+            for (const comp of comparisons) {
+                const { rows } = await client.query(insertQuery, [
+                    caseId, 
+                    comp.criteria_id, 
+                    comp.alternative_1, 
+                    comp.alternative_2, 
+                    comp.comparison_value
+                ]);
+                saved.push(rows[0]);
+            }
+
+            await client.query('COMMIT');
+            return saved;
+        } catch (error) {
+            await client.query('ROLLBACK');
+            throw error;
+        } finally {
+            client.release();
+        }
+    }
+
+    static async getAltComparisons(caseId) {
+        const query = 'SELECT * FROM alternative_comparisons WHERE case_id = $1';
+        const { rows } = await db.query(query, [caseId]);
+        return rows;
+    }
+    
 }
 
 module.exports = ComparisonRepository;

@@ -32,6 +32,35 @@ class AHPController {
             res.status(500).json({ error: error.message || 'Gagal menghitung bobot AHP' });
         }
     }
+
+    static async inputAltComparisons(req, res) {
+        try {
+            const { case_id, comparisons } = req.body;
+            if (!case_id || !Array.isArray(comparisons)) {
+                return res.status(400).json({ error: 'Data tidak valid' });
+            }
+
+            await ComparisonRepository.saveAltComparisons(case_id, comparisons);
+            res.status(201).json({ message: 'Data perbandingan alternatif berhasil disimpan' });
+        } catch (error) {
+            res.status(500).json({ error: error.message });
+        }
+    }
+
+    static async calculateAHPRanking(req, res) {
+        try {
+            const caseId = req.params.case_id;
+            const rankedResults = await AHPService.calculateRanking(caseId);
+
+            res.status(200).json({
+                message: 'Perankingan AHP Murni berhasil diselesaikan',
+                data: rankedResults
+            });
+        } catch (error) {
+            res.status(400).json({ error: error.message });
+        }
+    }
+    
 }
 
 module.exports = AHPController;

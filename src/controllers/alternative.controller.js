@@ -3,24 +3,25 @@ const AlternativeRepository = require('../repositories/alternative.repository');
 class AlternativeController {
     static async createAlternative(req, res) {
         try {
-            const { case_id, alternative_name, description, values } = req.body;
+            // Hapus 'values' dari destructuring req.body
+            const { case_id, alternative_name, description } = req.body;
 
-            // Validasi Input
-            if (!case_id || !alternative_name || !values || !Array.isArray(values) || values.length === 0) {
+            // Validasi Input disederhanakan
+            if (!case_id || !alternative_name) {
                 return res.status(400).json({ 
-                    error: 'case_id, alternative_name, dan array values (kriteria_id & value) wajib diisi' 
+                    error: 'case_id dan alternative_name wajib diisi' 
                 });
             }
 
-            const result = await AlternativeRepository.createWithValues(
+            // Panggil fungsi create yang baru
+            const result = await AlternativeRepository.create(
                 case_id, 
                 alternative_name, 
-                description, 
-                values
+                description
             );
 
             res.status(201).json({
-                message: 'Alternatif dan nilainya berhasil disimpan',
+                message: 'Alternatif berhasil dibuat',
                 data: result
             });
         } catch (error) {
@@ -44,14 +45,25 @@ class AlternativeController {
         }
     }
 
+    // Tambahan fungsi Update
+    static async updateAlternative(req, res) {
+        try {
+            const { alternative_name, description } = req.body;
+            const updated = await AlternativeRepository.update(req.params.id, alternative_name, description);
+            res.status(200).json({ message: 'Alternatif diperbarui', data: updated });
+        } catch (error) { 
+            res.status(500).json({ error: error.message }); 
+        }
+    }
+
     static async deleteAlternative(req, res) {
         try {
             await AlternativeRepository.delete(req.params.id);
             res.status(200).json({ message: 'Alternatif berhasil dihapus' });
-        } catch (error) { res.status(500).json({ error: error.message }); }
+        } catch (error) { 
+            res.status(500).json({ error: error.message }); 
+        }
     }
-
-    
 }
 
 module.exports = AlternativeController;

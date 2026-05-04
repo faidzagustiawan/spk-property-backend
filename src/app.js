@@ -28,12 +28,14 @@ const caseRoutes = require('./routes/case.routes');
 const criteriaRoutes = require('./routes/criteria.routes');
 const alternativeRoutes = require('./routes/alternative.routes');
 const spkRoutes = require('./routes/spk.routes');
+const valueRoutes = require('./routes/value.routes'); // Tambahkan ini
 
 app.use('/api/v1/auth', authRoutes);
 app.use('/api/v1/cases', caseRoutes);
 app.use('/api/v1/criteria', criteriaRoutes);
 app.use('/api/v1/alternatives', alternativeRoutes);
 app.use('/api/v1/spk', spkRoutes);
+app.use('/api/v1/values', valueRoutes); // Tambahkan ini
 // ===============================
 
 // Middleware Error Handler

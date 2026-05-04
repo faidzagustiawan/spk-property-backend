@@ -78,6 +78,79 @@ class AHPService {
                 : 'CR melebihi batas (>= 0.1). Penilaian tidak konsisten, bobot tidak disimpan.'
         };
     }
+
+    static async calculateRanking(caseId) {
+        const criteriaList = await CriteriaRepository.findByCaseId(caseId);
+        const alternatives = await AlternativeRepository.findByCaseId(caseId);
+        const altComparisons = await ComparisonRepository.getAltComparisons(caseId);
+
+        const numAlt = alternatives.length;
+        if (numAlt < 2) throw new Error('Dibutuhkan minimal 2 alternatif untuk perankingan AHP');
+        if (criteriaList.some(c => c.weight === null || c.weight === 0)) {
+            throw new Error('Bobot kriteria AHP belum dihitung. Jalankan kalkulasi kriteria terlebih dahulu.');
+        }
+
+        // Mapping ID ke index untuk mempermudah matriks
+        const altIndex = {};
+        alternatives.forEach((a, i) => altIndex[a.alternative_id] = i);
+
+        const finalScoresArray = Array(numAlt).fill(0);
+
+        // Lakukan perhitungan matriks UNTUK SETIAP KRITERIA
+        for (const criteria of criteriaList) {
+            const matrix = Array(numAlt).fill(null).map(() => Array(numAlt).fill(1));
+            
+            // Ambil perbandingan khusus kriteria ini
+            const compsForCriteria = altComparisons.filter(c => c.criteria_id === criteria.criteria_id);
+            
+            compsForCriteria.forEach(comp => {
+                const i = altIndex[comp.alternative_1];
+                const j = altIndex[comp.alternative_2];
+                matrix[i][j] = comp.comparison_value;
+                matrix[j][i] = 1 / comp.comparison_value;
+            });
+
+            // Hitung Eigen Vector Alternatif untuk Kriteria ini
+            const colSums = Array(numAlt).fill(0);
+            for (let j = 0; j < numAlt; j++) {
+                for (let i = 0; i < numAlt; i++) colSums[j] += matrix[i][j];
+            }
+
+            const altEigenVector = Array(numAlt).fill(0);
+            for (let i = 0; i < numAlt; i++) {
+                for (let j = 0; j < numAlt; j++) {
+                    altEigenVector[i] += (matrix[i][j] / colSums[j]);
+                }
+                altEigenVector[i] /= numAlt;
+            }
+
+            // Sintesis Akhir: Skor Alternatif * Bobot Kriteria
+            for (let i = 0; i < numAlt; i++) {
+                finalScoresArray[i] += (altEigenVector[i] * criteria.weight);
+            }
+        }
+
+        // Gabungkan skor akhir dengan data alternatif
+        const finalResults = alternatives.map((alt, i) => ({
+            alternative_id: alt.alternative_id,
+            alternative_name: alt.alternative_name,
+            score: finalScoresArray[i]
+        }));
+
+        // Urutkan (Ranking) dari nilai tertinggi
+        finalResults.sort((a, b) => b.score - a.score);
+
+        const resultsData = finalResults.map((item, index) => ({
+            alternative_id: item.alternative_id,
+            score: parseFloat(item.score.toFixed(4)),
+            ranking: index + 1
+        }));
+
+        // Simpan ke database results dengan method 'AHP'
+        await ResultRepository.saveBatchResults(caseId, 'AHP', resultsData);
+
+        return resultsData;
+    }
 }
 
 module.exports = AHPService;

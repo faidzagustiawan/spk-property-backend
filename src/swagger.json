@@ -2,13 +2,22 @@
   "openapi": "3.0.0",
   "info": {
     "title": "SPK Property & ML API",
-    "version": "1.1.0",
-    "description": "Dokumentasi REST API (Full CRUD) untuk Sistem Pendukung Keputusan."
+    "version": "2.0.0",
+    "description": "Dokumentasi REST API lengkap (Full CRUD) untuk Sistem Pendukung Keputusan. Mendukung dua jalur: Jalur Hybrid SPK (AHP + SAW/SMART/WP/TOPSIS) menggunakan data empiris, dan Jalur Pure AHP menggunakan perbandingan subjektif alternatif."
   },
-  "servers": [ { "url": "https://spk-property-backend-production.up.railway.app/api/v1" } ],
+  "servers": [
+    {
+      "url": "http://localhost:5000/api/v1",
+      "description": "Development Server"
+    }
+  ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": { "type": "http", "scheme": "bearer", "bearerFormat": "JWT" }
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
     },
     "schemas": {
       "CasePayload": {
@@ -24,13 +33,76 @@
           "case_id": { "type": "integer", "example": 1 },
           "criteria_name": { "type": "string", "example": "Harga" },
           "criteria_type": { "type": "string", "example": "cost" },
-          "weight": { "type": "number", "example": 0.5 }
+          "weight": { "type": "number", "example": 0 }
+        }
+      },
+      "AlternativePayload": {
+        "type": "object",
+        "properties": {
+          "case_id": { "type": "integer", "example": 1 },
+          "alternative_name": { "type": "string", "example": "Perumahan Indah Asri" },
+          "description": { "type": "string", "example": "Dekat stasiun kota" }
+        }
+      },
+      "ValuePayload": {
+        "type": "object",
+        "properties": {
+          "alternative_id": { "type": "integer", "example": 1 },
+          "values": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "criteria_id": { "type": "integer", "example": 1 },
+                "value": { "type": "number", "example": 450000000 }
+              }
+            }
+          }
+        }
+      },
+      "AHPComparisonsPayload": {
+        "type": "object",
+        "properties": {
+          "case_id": { "type": "integer", "example": 1 },
+          "comparisons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "criteria_1": { "type": "integer", "example": 1 },
+                "criteria_2": { "type": "integer", "example": 2 },
+                "comparison_value": { "type": "number", "example": 3 }
+              }
+            }
+          }
+        }
+      },
+      "AHPAltComparisonsPayload": {
+        "type": "object",
+        "properties": {
+          "case_id": { "type": "integer", "example": 1 },
+          "comparisons": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "criteria_id": { "type": "integer", "example": 1 },
+                "alternative_1": { "type": "integer", "example": 1 },
+                "alternative_2": { "type": "integer", "example": 2 },
+                "comparison_value": { "type": "number", "example": 5 }
+              }
+            }
+          }
         }
       }
     }
   },
-  "security": [ { "bearerAuth": [] } ],
-   "paths": {
+  "security": [
+    {
+      "bearerAuth": []
+    }
+  ],
+  "paths": {
     "/auth/register": {
       "post": {
         "tags": ["1. Authentication"],
@@ -51,7 +123,7 @@
             }
           }
         },
-        "responses": { "201": { "description": "Registrasi berhasil" } }
+        "responses": { "201": { "description": "Success" } }
       }
     },
     "/auth/login": {
@@ -73,7 +145,7 @@
             }
           }
         },
-        "responses": { "200": { "description": "Login berhasil, mengembalikan token" } }
+        "responses": { "200": { "description": "Success" } }
       }
     },
     "/cases": {
@@ -136,23 +208,137 @@
       },
       "delete": {
         "tags": ["3. Criteria"],
-        "summary": "Menghapus kriteria",
+        "summary": "Menghapus kriteria secara permanen",
         "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
         "responses": { "200": { "description": "Success" } }
       }
     },
+    "/alternatives": {
+      "post": {
+        "tags": ["4. Alternatives"],
+        "summary": "Membuat data identitas alternatif baru",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlternativePayload" } } } },
+        "responses": { "201": { "description": "Success" } }
+      }
+    },
+    "/alternatives/{case_id}": {
+      "get": {
+        "tags": ["4. Alternatives"],
+        "summary": "Mendapatkan list alternatif berdasarkan Case ID",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
     "/alternatives/{id}": {
-      "delete": {
-        "tags": ["5. Alternatives"],
-        "summary": "Menghapus alternatif",
+      "put": {
+        "tags": ["4. Alternatives"],
+        "summary": "Mengubah nama/deskripsi alternatif",
         "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AlternativePayload" } } } },
+        "responses": { "200": { "description": "Success" } }
+      },
+      "delete": {
+        "tags": ["4. Alternatives"],
+        "summary": "Menghapus alternatif dan nilai matriksnya",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/values": {
+      "post": {
+        "tags": ["5. Values (Matrix)"],
+        "summary": "Input/Update nilai empiris alternatif untuk kalkulasi Hybrid SPK",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/ValuePayload" } } } },
+        "responses": { "201": { "description": "Success" } }
+      }
+    },
+    "/values/{case_id}": {
+      "get": {
+        "tags": ["5. Values (Matrix)"],
+        "summary": "Mendapatkan seluruh matriks nilai dalam sebuah case",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/spk/ahp/comparisons": {
+      "post": {
+        "tags": ["6. AHP Engine (Criteria & Alt)"],
+        "summary": "Input perbandingan antarkriteria (AHP Level 1)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AHPComparisonsPayload" } } } },
+        "responses": { "201": { "description": "Success" } }
+      }
+    },
+    "/spk/ahp/calculate/{case_id}": {
+      "post": {
+        "tags": ["6. AHP Engine (Criteria & Alt)"],
+        "summary": "Hitung Eigen Vector Kriteria & Update tabel Criteria",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/spk/ahp/alternative-comparisons": {
+      "post": {
+        "tags": ["6. AHP Engine (Criteria & Alt)"],
+        "summary": "Input perbandingan antaralternatif per kriteria (Pure AHP Level 2)",
+        "requestBody": { "required": true, "content": { "application/json": { "schema": { "$ref": "#/components/schemas/AHPAltComparisonsPayload" } } } },
+        "responses": { "201": { "description": "Success" } }
+      }
+    },
+    "/spk/ahp/calculate-ranking/{case_id}": {
+      "post": {
+        "tags": ["6. AHP Engine (Criteria & Alt)"],
+        "summary": "Hitung perankingan Pure AHP & simpan ke Results",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/spk/saw/{case_id}": {
+      "post": {
+        "tags": ["7. SPK Hybrid Algorithms"],
+        "summary": "Kalkulasi & Ranking menggunakan SAW (Hybrid)",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/spk/smart/{case_id}": {
+      "post": {
+        "tags": ["7. SPK Hybrid Algorithms"],
+        "summary": "Kalkulasi & Ranking menggunakan SMART (Hybrid)",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/spk/wp/{case_id}": {
+      "post": {
+        "tags": ["7. SPK Hybrid Algorithms"],
+        "summary": "Kalkulasi & Ranking menggunakan WP (Hybrid)",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/spk/topsis/{case_id}": {
+      "post": {
+        "tags": ["7. SPK Hybrid Algorithms"],
+        "summary": "Kalkulasi & Ranking menggunakan TOPSIS (Hybrid)",
+        "parameters": [ { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
         "responses": { "200": { "description": "Success" } }
       }
     },
     "/spk/results/{case_id}": {
       "get": {
-        "tags": ["6. SPK Ranking Algorithms"],
-        "summary": "Melihat hasil kalkulasi tersimpan tanpa menghitung ulang",
+        "tags": ["7. SPK Hybrid Algorithms"],
+        "summary": "Melihat history hasil kalkulasi yang sudah disimpan",
+        "parameters": [
+          { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } },
+          { "name": "method", "in": "query", "required": false, "schema": { "type": "string", "default": "SAW" } }
+        ],
+        "responses": { "200": { "description": "Success" } }
+      }
+    },
+    "/ml/dataset/{case_id}": {
+      "get": {
+        "tags": ["8. Machine Learning Data"],
+        "summary": "Generate format dataset tabular untuk scikit-learn",
         "parameters": [
           { "name": "case_id", "in": "path", "required": true, "schema": { "type": "integer" } },
           { "name": "method", "in": "query", "required": false, "schema": { "type": "string", "default": "SAW" } }

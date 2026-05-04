@@ -41,6 +41,8 @@ CREATE TABLE alternative_values (
     FOREIGN KEY (criteria_id) REFERENCES criteria(criteria_id)
 );
 
+
+
 CREATE TABLE criteria_comparisons (
     comparison_id SERIAL PRIMARY KEY,
     case_id INT,
@@ -100,4 +102,17 @@ CREATE TABLE ml_predictions (
     FOREIGN KEY (case_id) REFERENCES decision_case(case_id),
     FOREIGN KEY (alternative_id) REFERENCES alternatives(alternative_id),
     FOREIGN KEY (model_id) REFERENCES ml_models(model_id)
+);
+
+CREATE TABLE alternative_comparisons (
+    alt_comparison_id SERIAL PRIMARY KEY,
+    case_id INT,
+    criteria_id INT,
+    alternative_1 INT,
+    alternative_2 INT,
+    comparison_value FLOAT,
+    FOREIGN KEY (case_id) REFERENCES decision_case(case_id) ON DELETE CASCADE,
+    FOREIGN KEY (criteria_id) REFERENCES criteria(criteria_id) ON DELETE CASCADE,
+    FOREIGN KEY (alternative_1) REFERENCES alternatives(alternative_id) ON DELETE CASCADE,
+    FOREIGN KEY (alternative_2) REFERENCES alternatives(alternative_id) ON DELETE CASCADE
 );
