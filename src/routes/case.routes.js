@@ -3,12 +3,15 @@ const router = express.Router();
 const CaseController = require('../controllers/case.controller');
 const authMiddleware = require('../middlewares/auth.middleware');
 
-// Semua route di bawah ini wajib pakai token (terproteksi)
 router.use(authMiddleware);
 
 router.post('/', CaseController.createCase);
 router.get('/', CaseController.getAllCases);
 router.get('/:id', CaseController.getCaseById);
+
+// Tambahkan route baru ini untuk update step
+router.put('/:id/step', CaseController.updateCaseStep); 
+
 router.put('/:id', CaseController.updateCase);
 router.delete('/:id', CaseController.deleteCase);
 
